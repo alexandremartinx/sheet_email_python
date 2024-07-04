@@ -162,7 +162,7 @@ class Connection:
     def main(self):
         connection = Connection.connect_db(self, user='seu user', password='sua senha', db='db', port='sua porta')
         if not connection:
-            print("Error connecting to the database.")
+            print("Erro ao se conectar no banco.")
             exit(0)
 
         query = '''
