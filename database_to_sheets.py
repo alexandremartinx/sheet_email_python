@@ -11,7 +11,7 @@ import os.path
 
 class Connection:
     '''
-    Performs manipulation of the Google Sheets spreadsheet.
+    Manipulação de API do Google Sheets.
     '''
     def __init__(self, spreadsheet_id: str = None, worksheet: str = None, creds_path: str = 'credentials.json') -> None:
         self.spreadsheet_id = spreadsheet_id
@@ -45,33 +45,6 @@ class Connection:
         # Call the Sheets API
         self.sheet = service.spreadsheets()
 
-    def get_planilha_info(self) -> pd.DataFrame:
-        print('[Google Sheets] Get All Values')
-
-        result = self.sheet.values().get(spreadsheetId=self.spreadsheet_id,
-                                    range=f"{self.worksheet}!A1:Z9999").execute()
-
-        product_sheets = result.get('values', [])
-
-        df_sheets = pd.DataFrame(product_sheets)
-        df_sheets.columns = df_sheets.iloc[0]
-        df_sheets = df_sheets[1:]
-        df_sheets.fillna('', inplace=True)
-
-        return df_sheets
-    
-    def insert_data(self, cell: str, values: List[List]) -> None:
-        if len(values) != 1 and len(values[0]) != 3:
-            raise ValueError('Variavel "values" está em formato incorreto')
-
-        request = self.sheet.values().update(
-            spreadsheetId=self.spreadsheet_id,
-            range=f"{self.worksheet}!{cell}", 
-            valueInputOption="RAW", 
-            body={"values": values}
-        )
-        response = request.execute()
-
     def create_worksheet(self, title):
         body = {
             'requests': [{
@@ -90,7 +63,7 @@ class Connection:
 
         return result
 
-    def batch_insert_data(self, worksheet_title: str, values: List[List[str]]):
+    def insert_data(self, worksheet_title: str, values: List[List[str]]):
         values_body = {
             'valueInputOption': "USER_ENTERED",
             'data': [
@@ -115,7 +88,7 @@ class Connection:
                 sheetId = sheet['properties']['sheetId']
         
         if not sheetId:
-            return 'Planilha não existe ?! Pulando'
+            return 'Planilha não existe'
 
         body = {
             "requests": [
@@ -133,26 +106,26 @@ class Connection:
         return result
 
     def verify_worksheet(self, worksheet, results_list):
-        print(f'working on {worksheet}')
+        print(f'Operando em {worksheet}')
         planilha = Connection(
             spreadsheet_id='1om2CebC9eH3brMJZE9A7RaUMXlvOc6f2jyBaj-a9Pfk',
             worksheet=worksheet
         )
         try:
-            print('Deleting the spreadsheet to recreate it')
+            print('Deletando aba para recriar')
             planilha.delete_worksheet(worksheet)
         except Exception:
-            print('Spreadsheet already deleted, creating a new one')
+            print('Aba deletada, recriando')
         try:
             planilha.create_worksheet(worksheet)
         except Exception:
-            print('Spreadsheet already created, skipping.')
+            print('Aba já criada, pulando.')
 
         self.all_values = [list(results_list[0].keys())]  # Cria a lista de cabeçalho
         for occurrence in tqdm(results_list, desc=f'Saving values from {worksheet}'):
             self.all_values.append([occurrence[key] for key in occurrence.keys()])
 
-        planilha.batch_insert_data(
+        planilha.insert_data(
             worksheet_title=worksheet,
             values=self.all_values
         )
@@ -168,7 +141,7 @@ class Connection:
                 passwd=password
             )
         except Exception as e:
-            print(f"Error connecting to the database: {str(e)}")
+            print(f"Erro ao se conectar com Banco de Dados: {str(e)}")
         return connection
 
     def execute_query(self, connection, query, params=None):
@@ -181,7 +154,7 @@ class Connection:
             result = cursor.fetchall()
             return result
         except Exception as e:
-            print(f"Error executing the SQL query: {str(e)}")
+            print(f"Erro executando a SQL query: {str(e)}")
             return None
         finally:
             cursor.close()
